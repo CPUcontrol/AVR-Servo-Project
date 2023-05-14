@@ -1,16 +1,21 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <util/atomic.h>
 
 #include "servo.h"
 #include "servo_conf.h"
 
-static volatile unsigned short servopos[20] = {
+static volatile unsigned short servopos[40] = {
+	4000,4000,4000,4000,4000,
+	4000,4000,4000,4000,4000,
+	4000,4000,4000,4000,4000,
+	4000,4000,4000,4000,4000,
+
 	4000,4000,4000,4000,4000,
 	4000,4000,4000,4000,4000,
 	4000,4000,4000,4000,4000,
 	4000,4000,4000,4000,4000
 };
+static volatile unsigned char doublebuf_offset = 0;
 static volatile unsigned char cur_servo = 0;
 
 void init_servo(void){
@@ -94,9 +99,11 @@ void init_servo(void){
 }
 
 void set_servo(unsigned char id, unsigned short val){
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		servopos[id] = val;
-	}
+	unsigned char old_dboff = doublebuf_offset;
+	unsigned char new_dboff = old_dboff ^ 20;
+	servopos[id + new_dboff] = val;
+	doublebuf_offset = new_dboff;
+	servopos[id + old_dboff] = val;
 }
 
 
@@ -104,7 +111,7 @@ void set_servo(unsigned char id, unsigned short val){
 ISR (TIMER1_COMPA_vect){
 	unsigned char idx = cur_servo;
 	//Time after 1 ms to turn off
-	OCR1B = servopos[idx];
+	OCR1B = servopos[idx + doublebuf_offset];
 #define SERVO_DAT(port, bit) PORT##port |= 1 << bit
 	switch(idx){
 	case  0:
