@@ -12,7 +12,7 @@ ${BIN}.elf: servo.o analog.o main.o
 	${CC} -o $@ $^ ${LDFLAGS}
 
 install: ${BIN}.hex
-	avrdude -p m328p -c usbtiny -U flash:w:$<:i
+	avrdude -p m328p -c usbtiny -U flash:w:$<:i -B 20
 
 clean:
 	rm *.elf *.hex *.o
